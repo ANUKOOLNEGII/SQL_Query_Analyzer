@@ -15,6 +15,7 @@ export const RegisterForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
@@ -86,34 +87,67 @@ export const RegisterForm: React.FC = () => {
         required
       />
 
-      <div className="relative">
-        <Input
-          label="Password"
-          type={showPassword ? 'text' : 'password'}
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          error={errors.password}
-          required
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-4.5 top-[47px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none"
+      <div className="flex flex-col w-full text-left">
+        <label
+          htmlFor="register-password"
+          className="text-sm font-semibold mb-2 text-text-primaryLight dark:text-text-primaryDark"
         >
-          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-        </button>
+          Password
+        </label>
+        <div className="relative">
+          <input
+            id="register-password"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className={`h-[52px] w-full rounded-input border bg-surface-light dark:bg-surface-dark transition-all duration-200 outline-none px-[18px] pr-12 ${errors.password ? 'border-error focus:ring-1 focus:ring-error' : 'border-border-light dark:border-border-dark focus:border-primary-light dark:focus:border-primary-dark focus:ring-1 focus:ring-primary-light'} text-text-primaryLight dark:text-text-primaryDark text-base placeholder:text-slate-400 dark:placeholder:text-slate-600 disabled:bg-slate-50 dark:disabled:bg-slate-900 disabled:cursor-not-allowed`}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label="Toggle password visibility"
+            className="absolute right-3 top-1/2 -translate-y-1/2 h-full w-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
+        {errors.password ? (
+          <span className="text-xs text-error mt-1.5 font-medium">{errors.password}</span>
+        ) : null}
       </div>
 
-      <Input
-        label="Confirm Password"
-        type="password"
-        placeholder="••••••••"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-        error={errors.confirmPassword}
-        required
-      />
+      <div className="flex flex-col w-full text-left">
+        <label
+          htmlFor="register-confirm-password"
+          className="text-sm font-semibold mb-2 text-text-primaryLight dark:text-text-primaryDark"
+        >
+          Confirm Password
+        </label>
+        <div className="relative">
+          <input
+            id="register-confirm-password"
+            type={showConfirmPassword ? 'text' : 'password'}
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            className={`h-[52px] w-full rounded-input border bg-surface-light dark:bg-surface-dark transition-all duration-200 outline-none px-[18px] pr-12 ${errors.confirmPassword ? 'border-error focus:ring-1 focus:ring-error' : 'border-border-light dark:border-border-dark focus:border-primary-light dark:focus:border-primary-dark focus:ring-1 focus:ring-primary-light'} text-text-primaryLight dark:text-text-primaryDark text-base placeholder:text-slate-400 dark:placeholder:text-slate-600 disabled:bg-slate-50 dark:disabled:bg-slate-900 disabled:cursor-not-allowed`}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            aria-label="Toggle password visibility"
+            className="absolute right-3 top-1/2 -translate-y-1/2 h-full w-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none"
+          >
+            {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
+        {errors.confirmPassword ? (
+          <span className="text-xs text-error mt-1.5 font-medium">{errors.confirmPassword}</span>
+        ) : null}
+      </div>
 
       <Button
         type="submit"
