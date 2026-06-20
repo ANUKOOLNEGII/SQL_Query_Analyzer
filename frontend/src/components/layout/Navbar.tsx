@@ -61,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
           </div>
 
           {/* Right section: Links & Profile Dropdown */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4">
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
@@ -134,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                 )}
               </div>
             ) : (
-              <div className="flex items-center space-x-3">
+              <>
                 <Link
                   to="/login"
                   className="text-sm font-semibold text-text-primaryLight dark:text-text-primaryDark hover:text-primary-light dark:hover:text-primary-dark transition-colors px-3 py-1.5"
@@ -143,11 +143,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                 </Link>
                 <Link
                   to="/register"
-                  className="text-sm font-semibold text-white bg-primary-light dark:bg-primary-dark hover:bg-teal-800 dark:hover:bg-teal-500 transition-all px-4.5 py-2.5 rounded-button shadow-sm"
+                  className="flex items-center justify-center h-10 px-5 rounded-xl text-sm font-semibold text-white bg-primary-light dark:bg-primary-dark hover:bg-teal-800 dark:hover:bg-teal-500 transition-all shadow-sm"
                 >
                   Register
                 </Link>
-              </div>
+              </>
             )}
           </div>
         </div>
