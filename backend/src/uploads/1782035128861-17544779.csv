@@ -1,0 +1,4 @@
+id,name,salary,department,joining_date
+1,Alice,50000,Engineering,2023-01-15
+2,Bob,60000,Sales,2023-02-20
+3,Charlie,70000,Engineering,2023-03-10
