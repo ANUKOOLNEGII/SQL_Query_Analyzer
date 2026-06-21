@@ -5,7 +5,6 @@ import { logger } from '../../config/logger';
 export interface AISQLResponse {
   sql: string;
   explanation: string;
-  suggestions: string[];
 }
 
 export const generateWithOpenAI = async (prompt: string): Promise<AISQLResponse> => {

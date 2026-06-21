@@ -31,12 +31,7 @@ Natural Language Question: "${naturalQuery}"
 Return your response ONLY as a JSON object matching this structure:
 {
   "sql": "SELECT ...",
-  "explanation": "Brief explanation...",
-  "suggestions": [
-    "Alternative query 1",
-    "Alternative query 2",
-    "Alternative query 3"
-  ]
+  "explanation": "Brief explanation..."
 }
 
 DO NOT include any markdown code blocks (e.g. \`\`\`json) or other text around the JSON object. Just return the raw JSON.

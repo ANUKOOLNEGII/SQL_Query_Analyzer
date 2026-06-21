@@ -112,6 +112,9 @@ describe('End-to-End Query, Connection, & Export Integration Tests', () => {
       expect(res.body.data).toHaveProperty('sql');
       expect(res.body.data).toHaveProperty('explanation');
       expect(res.body.data).toHaveProperty('suggestions');
+      expect(Array.isArray(res.body.data.suggestions)).toBe(true);
+      expect(res.body.data.suggestions.length).toBeGreaterThan(0);
+      expect(res.body.data.suggestions.every((item: string) => !/^\s*SELECT/i.test(item))).toBe(true);
     });
 
     it('should execute SQL query on dataset (in-memory SQLite)', async () => {
@@ -152,12 +155,20 @@ describe('End-to-End Query, Connection, & Export Integration Tests', () => {
 
     it('should retrieve query history', async () => {
       const res = await request(app)
-        .get('/api/v1/history')
+        .get('/api/v1/query/history')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.length).toBeGreaterThan(0);
+      expect(res.body.pagination).toEqual(
+        expect.objectContaining({
+          page: expect.any(Number),
+          limit: expect.any(Number),
+          total: expect.any(Number),
+          totalPages: expect.any(Number),
+        })
+      );
     });
 
     it('should export results to CSV', async () => {

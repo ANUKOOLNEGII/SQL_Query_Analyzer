@@ -59,6 +59,10 @@ export const generateQuery = async (req: AuthenticatedRequest, res: Response, ne
     }
 
     const aiResponse = await generateSQLQuery(schema, query, dbType);
+    logger.info('Query suggestions persisted', {
+      source: aiResponse.suggestionSource,
+      count: aiResponse.suggestions.length,
+    });
 
     await prisma.queryHistory.create({
       data: {
