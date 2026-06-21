@@ -1,0 +1,125 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  fullName            String
+  email               String               @unique
+  password            String
+  isVerified          Boolean              @default(false)
+  resetToken          String?              @db.Text
+  resetTokenExpiresAt DateTime?           
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  otpVerifications    OtpVerification[]
+  datasets            Dataset[]
+  databaseConnections DatabaseConnection[]
+  queryHistory        QueryHistory[]
+  auditLogs           AuditLog[]
+  exportHistory       ExportHistory[]
+
+  @@map("users")
+}
+
+model OtpVerification {
+  id        String   @id @default(uuid())
+  userId    String
+  otp       String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otp_verifications")
+}
+
+model Dataset {
+  id           String          @id @default(uuid())
+  userId       String
+  datasetName  String
+  fileName     String
+  totalRows    Int
+  totalColumns Int
+  createdAt    DateTime        @default(now())
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  columns      DatasetColumn[]
+
+  @@map("datasets")
+}
+
+model DatasetColumn {
+  id         String  @id @default(uuid())
+  datasetId  String
+  columnName String
+  dataType   String
+  dataset    Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@map("dataset_columns")
+}
+
+model DatabaseConnection {
+  id                String   @id @default(uuid())
+  userId            String
+  databaseType      String
+  host              String
+  port              Int
+  username          String
+  encryptedPassword String
+  databaseName      String
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("database_connections")
+}
+
+model QueryHistory {
+  id            String            @id @default(uuid())
+  userId        String
+  naturalQuery  String
+  generatedSQL  String
+  explanation   String
+  executionTime Int
+  status        String
+  createdAt     DateTime          @default(now())
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suggestions   QuerySuggestion[]
+
+  @@map("query_history")
+}
+
+model QuerySuggestion {
+  id             String       @id @default(uuid())
+  queryHistoryId String
+  suggestionText String
+  queryHistory   QueryHistory @relation(fields: [queryHistoryId], references: [id], onDelete: Cascade)
+
+  @@map("query_suggestions")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model ExportHistory {
+  id         String   @id @default(uuid())
+  userId     String
+  exportType String
+  fileName   String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("export_history")
+}
