@@ -4,6 +4,7 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
+import { useAppSelector } from '../../hooks/redux';
 import { 
   Sparkles, 
   UploadCloud, 
@@ -17,6 +18,8 @@ import {
 } from 'lucide-react';
 
 export const Landing: React.FC = () => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+
   const features = [
     {
       icon: <Sparkles className="text-accent-light dark:text-accent-dark h-7 w-7" />,
@@ -95,12 +98,21 @@ export const Landing: React.FC = () => {
             </p>
             
             <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <Link to="/register">
-                <Button variant="primary" size="lg" className="shadow-lg hover:shadow-xl group">
-                  <span>Get Started Free</span>
-                  <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <Link to="/dashboard">
+                  <Button variant="primary" size="lg" className="shadow-lg hover:shadow-xl group">
+                    <span>View Dashboard</span>
+                    <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <Button variant="primary" size="lg" className="shadow-lg hover:shadow-xl group">
+                    <span>Get Started Free</span>
+                    <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              )}
               <a href="#features">
                 <Button variant="outline" size="lg">
                   Watch Demo
@@ -275,11 +287,19 @@ ORDER BY sales_amount DESC;`}
               Start translating natural language sentences into clean, validated SQL today. No credit card required.
             </p>
             <div className="mt-8 flex justify-center">
-              <Link to="/register">
-                <Button className="bg-white text-primary-light hover:bg-slate-50 border-none shadow-md h-14 px-8 rounded-button text-base font-bold transition-all">
-                  Get Started For Free
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <Link to="/dashboard">
+                  <Button className="!bg-white !text-primary-light hover:!bg-slate-50 border-none shadow-md h-14 px-8 rounded-button text-base font-bold transition-all">
+                    View Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <Button className="!bg-white !text-primary-light hover:!bg-slate-50 border-none shadow-md h-14 px-8 rounded-button text-base font-bold transition-all">
+                    Get Started For Free
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>

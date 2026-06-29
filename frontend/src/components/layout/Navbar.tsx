@@ -42,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                 <Menu size={22} />
               </button>
             )}
-            <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center space-x-2.5">
+            <Link to="/" className="flex items-center space-x-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light dark:bg-primary-dark text-white shadow-md">
                 <Terminal size={18} />
               </div>

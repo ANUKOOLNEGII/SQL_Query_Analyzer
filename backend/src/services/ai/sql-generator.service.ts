@@ -6,6 +6,12 @@ import { generateWithGroq } from './groq.service';
 import { generateSuggestions, SuggestionSource } from '../ai-suggestion.service';
 import { logger } from '../../config/logger';
 
+export interface AIOptions {
+  temperature?: number;
+  maxTokens?: number;
+  provider?: 'groq' | 'openai' | 'gemini';
+}
+
 export interface AISQLResponse {
   sql: string;
   explanation: string;
@@ -71,31 +77,44 @@ export const generateMockSQL = (
 export const generateSQLQuery = async (
   schema: DatabaseSchemaSnapshot,
   naturalQuery: string,
-  dbType: string
+  dbType: string,
+  aiOptions?: AIOptions
 ): Promise<AISQLResponse> => {
   const prompt = buildPrompt(schema, naturalQuery, dbType);
+  const opts = aiOptions || {};
+  const preferredProvider = opts.provider || 'groq';
   let sqlResult: Pick<AISQLResponse, 'sql' | 'explanation'>;
 
-  try {
-    logger.info('Attempting SQL generation with Groq');
-    sqlResult = await generateWithGroq(prompt);
-  } catch (groqErr: any) {
-    logger.warn(`Groq failed: ${groqErr.message}. Trying OpenAI.`);
+  // Build provider attempt order based on user preference
+  const providerOrder: Array<'groq' | 'openai' | 'gemini'> = [preferredProvider];
+  if (preferredProvider !== 'groq') providerOrder.push('groq');
+  if (preferredProvider !== 'openai') providerOrder.push('openai');
+  if (preferredProvider !== 'gemini') providerOrder.push('gemini');
 
+  sqlResult = { sql: '', explanation: '' };
+  let lastError: any = null;
+
+  for (const p of providerOrder) {
     try {
-      logger.info('Attempting SQL generation with OpenAI');
-      sqlResult = await generateWithOpenAI(prompt);
-    } catch (openaiErr: any) {
-      logger.warn(`OpenAI failed: ${openaiErr.message}. Trying Gemini fallback.`);
-
-      try {
-        logger.info('Attempting SQL generation with Gemini');
-        sqlResult = await generateWithGemini(prompt);
-      } catch (geminiErr: any) {
-        logger.warn(`Gemini failed: ${geminiErr.message}. Falling back to mock generator.`);
-        sqlResult = generateMockSQL(schema, naturalQuery, dbType);
+      logger.info(`Attempting SQL generation with provider: ${p}`);
+      if (p === 'groq') {
+        sqlResult = await generateWithGroq(prompt, opts);
+      } else if (p === 'openai') {
+        sqlResult = await generateWithOpenAI(prompt, opts);
+      } else {
+        sqlResult = await generateWithGemini(prompt, opts);
       }
+      lastError = null;
+      break; // success
+    } catch (err: any) {
+      logger.warn(`Provider ${p} failed: ${err.message}`);
+      lastError = err;
     }
+  }
+
+  if (lastError) {
+    logger.warn('All AI providers failed. Falling back to mock generator.');
+    sqlResult = generateMockSQL(schema, naturalQuery, dbType);
   }
 
   const { suggestions, source } = await generateSuggestions(naturalQuery, schema, sqlResult.sql);

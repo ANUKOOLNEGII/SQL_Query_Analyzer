@@ -1,13 +1,14 @@
 import { openai } from '../../config/openai';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
+import type { AIOptions } from './sql-generator.service';
 
 export interface AISQLResponse {
   sql: string;
   explanation: string;
 }
 
-export const generateWithOpenAI = async (prompt: string): Promise<AISQLResponse> => {
+export const generateWithOpenAI = async (prompt: string, opts?: AIOptions): Promise<AISQLResponse> => {
   if (env.OPENAI_API_KEY.includes('placeholder')) {
     throw new Error('OpenAI API Key is placeholder. Fallback to Gemini.');
   }
@@ -17,6 +18,8 @@ export const generateWithOpenAI = async (prompt: string): Promise<AISQLResponse>
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
+      temperature: opts?.temperature ?? 0.2,
+      max_tokens: opts?.maxTokens ?? 2048,
     });
 
     const content = completion.choices[0].message.content;

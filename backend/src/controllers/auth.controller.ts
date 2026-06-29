@@ -8,6 +8,7 @@ import { createAndSendOTP, verifyOTP } from '../services/otp.service';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../services/auth.service';
 import { createAuditLog } from '../services/audit.service';
 import { OAuth2Client } from 'google-auth-library';
+import axios from 'axios';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -19,18 +20,34 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
       return next(new AppError(400, 'Google token is required'));
     }
 
-    const ticket = await googleClient.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    
-    const payload = ticket.getPayload();
-    if (!payload || !payload.email) {
-      return next(new AppError(400, 'Invalid Google token'));
+    let email, name;
+
+    try {
+      // First try it as an idToken (for backward compatibility if they use standard component)
+      const ticket = await googleClient.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      email = payload?.email;
+      name = payload?.name;
+    } catch (idTokenError) {
+      // If it fails, assume it's an access_token (from implicit flow custom button)
+      try {
+        const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        email = response.data.email;
+        name = response.data.name;
+      } catch (accessTokenError) {
+        return next(new AppError(400, 'Invalid Google token'));
+      }
     }
 
-    const { email, name } = payload;
-    
+    if (!email) {
+      return next(new AppError(400, 'Invalid Google token or email not provided'));
+    }
+
     let user = await prisma.user.findUnique({ where: { email } });
     
     if (!user) {

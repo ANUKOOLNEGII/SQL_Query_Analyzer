@@ -111,10 +111,17 @@ export const QueryGenerator: React.FC = () => {
 
     try {
       const isDb = selectedDataset.name.startsWith('db://');
+      // Read AI preferences set from Settings page
+      const aiPreferences = {
+        provider: localStorage.getItem('pref_ai_provider') || 'groq',
+        temperature: parseFloat(localStorage.getItem('pref_temperature') || '0.2'),
+        maxTokens: parseInt(localStorage.getItem('pref_max_tokens') || '2048'),
+      };
       const res = await queryService.generateQuery({
         query: inputVal,
         datasetId: isDb ? undefined : selectedDataset.id,
         connectionId: isDb ? selectedDataset.id : undefined,
+        ...aiPreferences,
       });
 
       dispatch(setNaturalQuery(inputVal));

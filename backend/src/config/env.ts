@@ -17,6 +17,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional().default('placeholder_openai'),
   GEMINI_API_KEY: z.string().optional().default('placeholder_gemini'),
   GROQ_API_KEY: z.string().optional().default('placeholder_groq'),
+  GROQ_MODEL: z.string().optional().default('llama-3.3-70b-versatile'),
   EMAIL_HOST: z.string().optional().default('placeholder_host'),
   EMAIL_PORT: z.coerce.number().optional().default(1025),
   EMAIL_USER: z.string().optional().default('placeholder_user'),

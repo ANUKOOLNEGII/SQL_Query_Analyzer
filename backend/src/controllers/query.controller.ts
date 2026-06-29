@@ -13,8 +13,15 @@ import { explainSQL } from '../services/ai/explanation.service';
 
 export const generateQuery = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { datasetId, connectionId, query } = req.body;
+    const { datasetId, connectionId, query, temperature, maxTokens, provider } = req.body;
     const userId = req.user!.id;
+
+    // AI preferences passed from the frontend Settings page
+    const aiOptions = {
+      temperature: typeof temperature === 'number' ? temperature : 0.2,
+      maxTokens: typeof maxTokens === 'number' ? maxTokens : 2048,
+      provider: provider || 'groq',
+    };
 
     let schema: DatabaseSchemaSnapshot = { tables: [], relationships: [] };
     let dbType = 'SQL';
@@ -58,7 +65,7 @@ export const generateQuery = async (req: AuthenticatedRequest, res: Response, ne
       dbType = connection.databaseType;
     }
 
-    const aiResponse = await generateSQLQuery(schema, query, dbType);
+    const aiResponse = await generateSQLQuery(schema, query, dbType, aiOptions);
     logger.info('Query suggestions persisted', {
       source: aiResponse.suggestionSource,
       count: aiResponse.suggestions.length,

@@ -5,9 +5,13 @@ import { logger } from './logger';
 export const transporter = nodemailer.createTransport({
   host: env.EMAIL_HOST,
   port: env.EMAIL_PORT,
+  secure: env.EMAIL_PORT === 465, // true for port 465 (SSL), false for 587 (TLS)
   auth: {
     user: env.EMAIL_USER,
     pass: env.EMAIL_PASSWORD,
+  },
+  tls: {
+    rejectUnauthorized: false, // Allow self-signed certs in dev
   },
 });
 

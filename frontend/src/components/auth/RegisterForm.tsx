@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
+import { useAppDispatch } from '../../hooks/redux';
+import { setCredentials } from '../../store/authSlice';
 import { authService } from '../../services/auth.service';
 import { useToast } from '../../contexts/ToastContext';
 import Input from '../common/Input';
@@ -29,6 +32,7 @@ const GoogleIcon: React.FC = () => (
 
 export const RegisterForm: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { addToast } = useToast();
 
   const [name, setName] = useState('');
@@ -86,9 +90,25 @@ export const RegisterForm: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log("Google Authentication");
-  };
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      try {
+        const data = await authService.googleLogin(tokenResponse.access_token);
+        dispatch(setCredentials({ user: data.user, token: data.token }));
+        // Note: the backend handles creating the user if they don't exist
+        addToast('Registered and logged in successfully with Google!', 'success');
+        navigate('/');
+      } catch (err: any) {
+        const msg = err.response?.data?.message || 'Google registration failed.';
+        addToast(msg, 'error');
+        setIsLoading(false);
+      }
+    },
+    onError: () => {
+      addToast('Google registration failed', 'error');
+    },
+  });
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4.5 text-left">
@@ -187,7 +207,7 @@ export const RegisterForm: React.FC = () => {
 
       <button
         type="button"
-        onClick={handleGoogleLogin}
+        onClick={() => handleGoogleLogin()}
         aria-label="Continue with Google"
         className="w-full h-11 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 flex items-center justify-center gap-3 rounded-lg font-medium text-text-primaryLight dark:text-text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary-light dark:focus:ring-primary-dark"
       >

@@ -9,7 +9,7 @@ export const Login: React.FC = () => {
 
   // If already authenticated, redirect to dashboard
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const benefits = [

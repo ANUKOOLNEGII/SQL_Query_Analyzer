@@ -10,7 +10,7 @@ export const VerifyOTP: React.FC = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (!email) {

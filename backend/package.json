@@ -4,6 +4,7 @@
   "description": "AI-Powered Natural Language to SQL Query Generator Backend",
   "main": "dist/server.js",
   "scripts": {
+    "predev": "lsof -ti:5001 | xargs kill -9 2>/dev/null || true",
     "dev": "nodemon src/server.ts",
     "build": "rimraf dist && tsc",
     "start": "node dist/server.js",

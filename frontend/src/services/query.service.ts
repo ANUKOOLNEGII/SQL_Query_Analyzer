@@ -4,6 +4,9 @@ export interface GenerateQueryRequest {
   query: string;
   datasetId?: string;
   connectionId?: string;
+  temperature?: number;
+  maxTokens?: number;
+  provider?: string;
 }
 
 export interface ExecuteSQLRequest {

@@ -5,7 +5,6 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { 
-  Bell, 
   Sun, 
   Moon, 
   Cpu, 
@@ -16,31 +15,26 @@ export const Settings: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { addToast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'appearance' | 'notifications' | 'ai' | 'export'>('appearance');
-
-  // Notification states
-  const [notifySuccess, setNotifySuccess] = useState(true);
-  const [notifyFailure, setNotifyFailure] = useState(true);
-  const [emailDigest, setEmailDigest] = useState(false);
+  const [activeTab, setActiveTab] = useState<'appearance' | 'ai' | 'export'>('appearance');
 
   // AI preference states
-  const [aiProvider, setAiProvider] = useState('openai');
-  const [maxTokens, setMaxTokens] = useState(1024);
-  const [temperature, setTemperature] = useState(0.2);
+  const [aiProvider, setAiProvider] = useState(() => localStorage.getItem('pref_ai_provider') || 'groq');
+  const [maxTokens, setMaxTokens] = useState(() => parseInt(localStorage.getItem('pref_max_tokens') || '2048'));
+  const [temperature, setTemperature] = useState(() => parseFloat(localStorage.getItem('pref_temperature') || '0.2'));
 
   // Export formats
-  const [defaultExportFormat, setDefaultExportFormat] = useState('csv');
+  const [defaultExportFormat, setDefaultExportFormat] = useState(() => localStorage.getItem('pref_export_format') || 'csv');
 
   const handleSaveSettings = () => {
-    // Save to localStorage or mock call
     localStorage.setItem('pref_ai_provider', aiProvider);
+    localStorage.setItem('pref_max_tokens', String(maxTokens));
+    localStorage.setItem('pref_temperature', String(temperature));
     localStorage.setItem('pref_export_format', defaultExportFormat);
     addToast('Preferences saved successfully!', 'success');
   };
 
   const tabs = [
     { id: 'appearance', label: 'Appearance', icon: <Sun size={18} /> },
-    { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
     { id: 'ai', label: 'AI Preferences', icon: <Cpu size={18} /> },
     { id: 'export', label: 'Export Defaults', icon: <Download size={18} /> },
   ];
@@ -101,62 +95,6 @@ export const Settings: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'notifications' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-text-primaryLight dark:text-text-primaryDark">Notifications</h3>
-                <p className="text-xs text-text-secondaryLight dark:text-text-secondaryDark mt-0.5">Select triggers for email warnings and analytical digests.</p>
-              </div>
-
-              <div className="border-t border-border-light dark:border-border-dark pt-5 space-y-4">
-                <label className="flex items-start space-x-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={notifySuccess}
-                    onChange={(e) => setNotifySuccess(e.target.checked)}
-                    className="mt-1 rounded border-border-light dark:border-border-dark text-primary-light focus:ring-primary-light h-4 w-4"
-                  />
-                  <div>
-                    <span className="text-sm font-bold text-text-primaryLight dark:text-text-primaryDark">Query Executions logs</span>
-                    <p className="text-xs text-text-secondaryLight dark:text-text-secondaryDark mt-0.5">Get visual alerts for successfully parsed database runs.</p>
-                  </div>
-                </label>
-
-                <label className="flex items-start space-x-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={notifyFailure}
-                    onChange={(e) => setNotifyFailure(e.target.checked)}
-                    className="mt-1 rounded border-border-light dark:border-border-dark text-primary-light focus:ring-primary-light h-4 w-4"
-                  />
-                  <div>
-                    <span className="text-sm font-bold text-text-primaryLight dark:text-text-primaryDark">API failures & Warning events</span>
-                    <p className="text-xs text-text-secondaryLight dark:text-text-secondaryDark mt-0.5">Alert immediately upon database validation errors.</p>
-                  </div>
-                </label>
-
-                <label className="flex items-start space-x-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={emailDigest}
-                    onChange={(e) => setEmailDigest(e.target.checked)}
-                    className="mt-1 rounded border-border-light dark:border-border-dark text-primary-light focus:ring-primary-light h-4 w-4"
-                  />
-                  <div>
-                    <span className="text-sm font-bold text-text-primaryLight dark:text-text-primaryDark">Weekly Activity Digest</span>
-                    <p className="text-xs text-text-secondaryLight dark:text-text-secondaryDark mt-0.5">Receive summary reports detailing executed SQL counts.</p>
-                  </div>
-                </label>
-              </div>
-
-              <div className="flex justify-end pt-4">
-                <Button variant="primary" onClick={handleSaveSettings}>
-                  Save Preferences
-                </Button>
-              </div>
-            </div>
-          )}
-
           {activeTab === 'ai' && (
             <div className="space-y-6">
               <div>
@@ -172,7 +110,8 @@ export const Settings: React.FC = () => {
                     onChange={(e) => setAiProvider(e.target.value)}
                     className="h-[52px] px-[18px] rounded-input border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark text-text-primaryLight dark:text-text-primaryDark text-base outline-none focus:border-primary-light transition-all"
                   >
-                    <option value="openai">OpenAI GPT-4o (Primary)</option>
+                    <option value="groq">Groq LLaMA 3.3 70B (Primary)</option>
+                    <option value="openai">OpenAI GPT-4o (Fallback)</option>
                     <option value="gemini">Google Gemini 1.5 Pro (Fallback)</option>
                   </select>
                 </div>
