@@ -64,6 +64,16 @@ export const generateQuery = async (req: AuthenticatedRequest, res: Response, ne
       count: aiResponse.suggestions.length,
     });
 
+    let validation = { isValid: true, errors: [] as string[] };
+    try {
+      validateSQLQuery(aiResponse.sql, schema);
+    } catch (e: any) {
+      validation.isValid = false;
+      validation.errors.push(e.message);
+    }
+
+    const finalResponse = { ...aiResponse, validation };
+
     await prisma.queryHistory.create({
       data: {
         userId,
@@ -81,7 +91,7 @@ export const generateQuery = async (req: AuthenticatedRequest, res: Response, ne
 
     res.status(200).json({
       success: true,
-      data: aiResponse,
+      data: finalResponse,
     });
   } catch (error) {
     next(error);

@@ -8,6 +8,7 @@ import {
   resendOtp,
   forgotPassword,
   resetPassword,
+  googleLogin,
 } from '../controllers/auth.controller';
 import { validateRequest } from '../middleware/validate.middleware';
 import {
@@ -23,6 +24,7 @@ import { authRateLimiter } from '../middleware/rate-limit.middleware';
 
 const router = Router();
 
+router.post('/google-login', authRateLimiter, googleLogin);
 router.post('/register', authRateLimiter, validateRequest(registerSchema), register);
 router.post('/verify-otp', validateRequest(verifyOTPSchema), verifyOtp);
 router.post('/login', authRateLimiter, validateRequest(loginSchema), login);

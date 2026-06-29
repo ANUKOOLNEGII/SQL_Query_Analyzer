@@ -7,6 +7,7 @@ import {
   setSuggestions, 
   setExplanation, 
   setValidation,
+  setResults,
   clearQueryState
 } from '../../store/querySlice';
 import { setSelectedDataset, setSchema } from '../../store/datasetSlice';
@@ -22,21 +23,26 @@ import ValidationPanel from '../../components/query/ValidationPanel';
 import QueryExplanation from '../../components/query/QueryExplanation';
 import ExecuteButton from '../../components/query/ExecuteButton';
 import SchemaPanel from '../../components/query/SchemaPanel';
+import StatisticsCard from '../../components/results/StatisticsCard';
+import ExportMenu from '../../components/results/ExportMenu';
+import ResultsTable from '../../components/results/ResultsTable';
 import Loader from '../../components/common/Loader';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import { Database, Sparkles, Terminal, AlertTriangle } from 'lucide-react';
+import { Database, Sparkles, Terminal, AlertTriangle, LayoutGrid, AlertCircle } from 'lucide-react';
 
 export const QueryGenerator: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { addToast } = useToast();
   
-  const { naturalQuery, generatedSQL, suggestions, explanation, validation } = useAppSelector((state) => state.query);
-  const { datasets, selectedDataset } = useAppSelector((state) => state.dataset);
+  const { naturalQuery, generatedSQL, suggestions, explanation, validation, results } = useAppSelector((state) => state.query);
+  const { selectedDataset } = useAppSelector((state) => state.dataset);
 
   const [inputVal, setInputVal] = useState(naturalQuery);
   const [generating, setGenerating] = useState(false);
+  const [executing, setExecuting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [loadingDatasets, setLoadingDatasets] = useState(true);
   const [availableSources, setAvailableSources] = useState<Dataset[]>([]);
 
@@ -101,6 +107,7 @@ export const QueryGenerator: React.FC = () => {
     dispatch(setGeneratedSQL(''));
     dispatch(setExplanation(''));
     dispatch(setValidation({ isValid: false, errors: [] }));
+    dispatch(setResults(null));
 
     try {
       const isDb = selectedDataset.name.startsWith('db://');
@@ -133,9 +140,33 @@ export const QueryGenerator: React.FC = () => {
     setInputVal(sug);
   };
 
-  const handleExecuteNavigate = () => {
-    if (!generatedSQL) return;
-    navigate('/query-execution');
+  const handleExecute = async () => {
+    if (!generatedSQL || !selectedDataset) return;
+    setExecuting(true);
+    setErrorMsg('');
+    try {
+      const isDb = selectedDataset?.name?.startsWith('db://');
+      const res = await queryService.executeSQL({
+        sql: generatedSQL,
+        datasetId: isDb ? undefined : selectedDataset?.id,
+        connectionId: isDb ? selectedDataset?.id : undefined,
+        naturalQuery,
+      });
+
+      dispatch(setResults({
+        columns: res.columns,
+        rows: res.rows,
+        rowCount: res.rowCount,
+        executionTime: res.executionTime,
+      }));
+      addToast('Query executed successfully!', 'success');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'SQL execution failed. Check query syntax.';
+      setErrorMsg(msg);
+      addToast(msg, 'error');
+    } finally {
+      setExecuting(false);
+    }
   };
 
   const handleSourceSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -246,9 +277,9 @@ export const QueryGenerator: React.FC = () => {
                     <SQLViewer sql={generatedSQL} onSQLChange={handleSQLChange} />
                     {validation && <ValidationPanel validation={validation} />}
                     <ExecuteButton
-                      onExecute={handleExecuteNavigate}
-                      isLoading={false}
-                      disabled={!validation?.isValid}
+                      onExecute={handleExecute}
+                      isLoading={executing}
+                      disabled={!validation?.isValid || executing}
                     />
                   </div>
                 </Card>
@@ -256,6 +287,54 @@ export const QueryGenerator: React.FC = () => {
                 {/* Explanation and suggestions */}
                 <QueryExplanation explanation={explanation} />
                 <QuerySuggestions suggestions={suggestions} onSelect={handleSuggestionSelect} />
+
+                {/* Loading overlay panel */}
+                {executing && (
+                  <Card className="p-8 text-center border-none shadow-none mt-6">
+                    <Loader text="Opening database connection & running SQL query..." />
+                  </Card>
+                )}
+
+                {/* Error notification banner */}
+                {!executing && errorMsg && (
+                  <div className="flex items-start space-x-3.5 p-5 border border-red-200 dark:border-red-900/35 rounded-card bg-red-50 dark:bg-red-950/15 text-error mt-6">
+                    <AlertCircle size={24} className="mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-bold text-sm">SQL Database Execution Error</h4>
+                      <p className="text-xs mt-1 leading-relaxed opacity-90 font-mono font-bold bg-white/20 dark:bg-black/20 p-3 rounded-lg mt-3">
+                        {errorMsg}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Results layout view */}
+                {!executing && results && (
+                  <div className="space-y-6 animate-slide-up mt-8">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+                      <h3 className="text-lg font-bold text-text-primaryLight dark:text-text-primaryDark flex items-center space-x-2">
+                        <LayoutGrid size={18} className="text-primary-light" />
+                        <span>3. Query Output Results</span>
+                      </h3>
+                      <ExportMenu 
+                        columns={results.columns} 
+                        rows={results.rows} 
+                        filename={selectedDataset?.name ? selectedDataset.name.replace('.csv', '_results') : 'query_output'}
+                      />
+                    </div>
+
+                    {/* Run stats */}
+                    <StatisticsCard
+                      rowCount={results.rowCount}
+                      executionTime={results.executionTime}
+                    />
+
+                    {/* Main results table */}
+                    <Card className="p-6">
+                      <ResultsTable columns={results.columns} rows={results.rows} />
+                    </Card>
+                  </div>
+                )}
               </div>
             )}
           </div>

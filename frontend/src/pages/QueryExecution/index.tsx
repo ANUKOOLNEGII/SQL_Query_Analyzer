@@ -28,10 +28,11 @@ export const QueryExecution: React.FC = () => {
     setExecuting(true);
     setErrorMsg('');
     try {
+      const isDb = selectedDataset?.name?.startsWith('db://');
       const res = await queryService.executeSQL({
         sql: generatedSQL,
-        datasetId: selectedDataset?.id.startsWith('db-') ? undefined : selectedDataset?.id,
-        connectionId: selectedDataset?.id.startsWith('conn-') ? selectedDataset?.id : undefined,
+        datasetId: isDb ? undefined : selectedDataset?.id,
+        connectionId: isDb ? selectedDataset?.id : undefined,
         naturalQuery,
       });
 
@@ -149,7 +150,7 @@ export const QueryExecution: React.FC = () => {
               <ExportMenu 
                 columns={results.columns} 
                 rows={results.rows} 
-                filename={selectedDataset ? selectedDataset.name.replace('.csv', '_results') : 'query_output'}
+                filename={selectedDataset?.name ? selectedDataset.name.replace('.csv', '_results') : 'query_output'}
               />
             </div>
 

@@ -7,6 +7,76 @@ import { AppError } from '../middleware/error.middleware';
 import { createAndSendOTP, verifyOTP } from '../services/otp.service';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../services/auth.service';
 import { createAuditLog } from '../services/audit.service';
+import { OAuth2Client } from 'google-auth-library';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+export const googleLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return next(new AppError(400, 'Google token is required'));
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return next(new AppError(400, 'Invalid Google token'));
+    }
+
+    const { email, name } = payload;
+    
+    let user = await prisma.user.findUnique({ where: { email } });
+    
+    if (!user) {
+      // Create a new user with a random secure password if they don't exist
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = await bcrypt.hash(randomPassword, 12);
+      
+      user = await prisma.user.create({
+        data: {
+          fullName: name || 'Google User',
+          email,
+          password: hashedPassword,
+          isVerified: true, // Google emails are already verified
+        },
+      });
+      await createAuditLog(user.id, 'USER_REGISTERED_GOOGLE', { email, ip: req.ip });
+    } else if (!user.isVerified) {
+      // If the user signed up with email but didn't verify, verify them now
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { isVerified: true },
+      });
+    }
+
+    const accessToken = generateAccessToken(user.id, user.email);
+    const refreshToken = generateRefreshToken(user.id, user.email);
+
+    await createAuditLog(user.id, 'USER_LOGIN_GOOGLE', { email: user.email, ip: req.ip });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          isVerified: user.isVerified,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

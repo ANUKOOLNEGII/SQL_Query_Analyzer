@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
 import { prisma } from '../config/database';
@@ -6,18 +5,17 @@ import { AppError } from '../middleware/error.middleware';
 
 export interface CSVAnalysisResult {
   datasetName: string;
-  fileName: string;
+  fileName: string; // Will store the Cloudinary URL after upload
   totalRows: number;
   totalColumns: number;
   columns: { columnName: string; dataType: string }[];
 }
 
-export const analyzeCSV = (filePath: string, originalName: string): CSVAnalysisResult => {
-  if (!fs.existsSync(filePath)) {
-    throw new AppError(400, 'Uploaded file does not exist');
-  }
-
-  const fileContent = fs.readFileSync(filePath, 'utf-8');
+/**
+ * Analyze raw CSV content string and return structured metadata.
+ * Does NOT touch the filesystem — content must be passed in.
+ */
+export const analyzeCSVContent = (fileContent: string, originalName: string): CSVAnalysisResult => {
   if (!fileContent.trim()) {
     throw new AppError(400, 'Uploaded file is empty');
   }
@@ -52,7 +50,7 @@ export const analyzeCSV = (filePath: string, originalName: string): CSVAnalysisR
       const isInteger = sampleValues.every((val) => /^-?\d+$/.test(val));
       const isFloat = !isInteger && sampleValues.every((val) => /^-?\d*\.\d+$/.test(val) || /^-?\d+$/.test(val));
       const isBoolean = sampleValues.every((val) => /^(true|false|1|0|yes|no)$/i.test(val));
-      
+
       // Strict check for Date. Avoid parsing simple numbers as dates.
       const isDate = sampleValues.every((val) => {
         const parsed = Date.parse(val);
@@ -80,12 +78,18 @@ export const analyzeCSV = (filePath: string, originalName: string): CSVAnalysisR
 
   return {
     datasetName,
-    fileName: path.basename(filePath),
+    fileName: originalName, // placeholder — will be replaced with Cloudinary URL in the controller
     totalRows,
     totalColumns,
     columns: columnsAnalysis,
   };
 };
+
+/**
+ * @deprecated Use analyzeCSVContent instead.
+ * Kept for backward compatibility.
+ */
+export const analyzeCSV = analyzeCSVContent;
 
 export const saveDataset = async (
   userId: string,

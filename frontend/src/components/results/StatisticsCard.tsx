@@ -19,7 +19,7 @@ export const StatisticsCard: React.FC<StatisticsCardProps> = ({
         </div>
         <div>
           <div className="text-sm text-text-secondaryLight dark:text-text-secondaryDark font-semibold">Records Returned</div>
-          <div className="text-lg font-bold text-text-primaryLight dark:text-text-primaryDark mt-0.5">{rowCount.toLocaleString()} rows</div>
+          <div className="text-lg font-bold text-text-primaryLight dark:text-text-primaryDark mt-0.5">{(rowCount || 0).toLocaleString()} rows</div>
         </div>
       </Card>
 
@@ -29,7 +29,7 @@ export const StatisticsCard: React.FC<StatisticsCardProps> = ({
         </div>
         <div>
           <div className="text-sm text-text-secondaryLight dark:text-text-secondaryDark font-semibold">Execution Speed</div>
-          <div className="text-lg font-bold text-text-primaryLight dark:text-text-primaryDark mt-0.5">{executionTime} ms</div>
+          <div className="text-lg font-bold text-text-primaryLight dark:text-text-primaryDark mt-0.5">{executionTime || 0} ms</div>
         </div>
       </Card>
     </div>

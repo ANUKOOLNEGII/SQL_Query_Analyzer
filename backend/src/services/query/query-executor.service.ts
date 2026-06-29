@@ -1,11 +1,9 @@
-import fs from 'fs';
-import path from 'path';
+import axios from 'axios';
 import sqlite3 from 'sqlite3';
 import { Client as PGClient } from 'pg';
 import mysql from 'mysql2/promise';
 import { Connection as TediousConnection, Request as TediousRequest } from 'tedious';
 import { parse } from 'csv-parse/sync';
-import { uploadDir } from '../../middleware/upload.middleware';
 import { DBConfig } from '../database.service';
 import { AppError } from '../../middleware/error.middleware';
 
@@ -16,35 +14,38 @@ export interface QueryResult {
   executionTime: number;
 }
 
-export const executeCSVQuery = (
+export const executeCSVQuery = async (
   fileName: string,
   tableName: string,
   sql: string
 ): Promise<QueryResult> => {
+  const startTime = Date.now();
+
+  // fileName is now a Cloudinary URL — fetch CSV content remotely
+  let fileContent: string;
+  try {
+    const response = await axios.get<string>(fileName, { responseType: 'text', timeout: 15000 });
+    fileContent = response.data;
+  } catch (err: any) {
+    throw new AppError(400, `Failed to fetch CSV from Cloudinary: ${err.message}`);
+  }
+
+  let records: any[] = [];
+  try {
+    records = parse(fileContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+    });
+  } catch (parseErr: any) {
+    throw new AppError(400, `Failed to parse CSV file: ${parseErr.message}`);
+  }
+
+  if (records.length === 0) {
+    throw new AppError(400, 'CSV dataset has no rows to query');
+  }
+
   return new Promise((resolve, reject) => {
-    const startTime = Date.now();
-    const filePath = path.join(uploadDir, fileName);
-
-    if (!fs.existsSync(filePath)) {
-      return reject(new AppError(400, 'Dataset file not found'));
-    }
-
-    let records: any[] = [];
-    try {
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
-      records = parse(fileContent, {
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-      });
-    } catch (parseErr: any) {
-      return reject(new AppError(400, `Failed to parse CSV file: ${parseErr.message}`));
-    }
-
-    if (records.length === 0) {
-      return reject(new AppError(400, 'CSV dataset has no rows to query'));
-    }
-
     const db = new sqlite3.Database(':memory:', (err) => {
       if (err) {
         return reject(new AppError(500, `Failed to open in-memory SQLite: ${err.message}`));

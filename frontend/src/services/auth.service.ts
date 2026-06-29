@@ -22,6 +22,22 @@ export const authService = {
     return resData;
   },
 
+  async googleLogin(token: string) {
+    const response = await axiosClient.post('/auth/google-login', { token });
+    const resData = response.data?.data || response.data;
+    if (resData.accessToken) {
+      return {
+        ...resData,
+        token: resData.accessToken,
+        user: {
+          ...resData.user,
+          name: resData.user.fullName
+        }
+      };
+    }
+    return resData;
+  },
+
   async verifyOtp(email: string, otp: string) {
     const response = await axiosClient.post('/auth/verify-otp', { email, otp });
     const resData = response.data;

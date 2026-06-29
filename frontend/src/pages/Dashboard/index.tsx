@@ -63,6 +63,47 @@ export const Dashboard: React.FC = () => {
   const successfulQueries = queryHistory.filter(h => h.status === 'success').length;
   const savedQueriesCount = queryHistory.length; // all queries in history are currently saved in DB
 
+  // Calculate dynamic data for Trend Chart (last 7 days)
+  const last7Days = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return d.toLocaleDateString('en-US', { weekday: 'short' });
+  }).reverse();
+
+  const trendData = last7Days.map(day => ({
+    date: day,
+    queries: queryHistory.filter(q => {
+      if (!q.createdAt) return false;
+      const qDate = new Date(q.createdAt);
+      return qDate.toLocaleDateString('en-US', { weekday: 'short' }) === day &&
+             (Date.now() - qDate.getTime()) < 7 * 24 * 60 * 60 * 1000;
+    }).length
+  }));
+
+  // Calculate dynamic data for Usage Chart
+  const usageCount = {
+    'SELECT Queries': 0,
+    'JOINs': 0,
+    'Aggregations': 0,
+    'Filters/WHERE': 0
+  };
+
+  queryHistory.forEach(q => {
+    const sql = (q.generatedSQL || '').toUpperCase();
+    if (sql.includes('SELECT')) usageCount['SELECT Queries']++;
+    if (sql.includes('JOIN')) usageCount['JOINs']++;
+    if (sql.includes('GROUP BY') || sql.includes('COUNT(') || sql.includes('SUM(') || sql.includes('AVG(') || sql.includes('MAX(') || sql.includes('MIN(')) usageCount['Aggregations']++;
+    if (sql.includes('WHERE')) usageCount['Filters/WHERE']++;
+  });
+
+  const usageData = Object.entries(usageCount)
+    .filter(([_, count]) => count > 0)
+    .map(([name, value]) => ({ name, value }));
+
+  if (usageData.length === 0) {
+    usageData.push({ name: 'No Data', value: 1 });
+  }
+
   return (
     <div className="space-y-8 text-left animate-fade-in">
       {/* Welcome header */}
@@ -135,7 +176,7 @@ export const Dashboard: React.FC = () => {
             <h3 className="text-lg font-bold text-text-primaryLight dark:text-text-primaryDark">Query Creation Trends</h3>
             <p className="text-xs text-text-secondaryLight dark:text-text-secondaryDark mt-0.5">Daily volume of AI-generated queries</p>
           </div>
-          <QueryTrendChart />
+          <QueryTrendChart data={trendData} />
         </Card>
 
         <Card className="p-6 flex flex-col justify-between">
@@ -143,7 +184,7 @@ export const Dashboard: React.FC = () => {
             <h3 className="text-lg font-bold text-text-primaryLight dark:text-text-primaryDark">Command Distribution</h3>
             <p className="text-xs text-text-secondaryLight dark:text-text-secondaryDark mt-0.5">Breakdown by SQL operations type</p>
           </div>
-          <UsageChart />
+          <UsageChart data={usageData} />
         </Card>
       </div>
 
