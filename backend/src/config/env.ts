@@ -11,21 +11,26 @@ const envSchema = z.object({
   CLIENT_URL: z.string().url().default('http://localhost:5173'),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(8),
-  JWT_REFRESH_SECRET: z.string().min(8),
+  JWT_REFRESH_SECRET: z.string().min(8).optional(),
   JWT_EXPIRE: z.string().default('15m'),
   JWT_REFRESH_EXPIRE: z.string().default('7d'),
-  OPENAI_API_KEY: z.string(),
-  GEMINI_API_KEY: z.string(),
-  EMAIL_HOST: z.string(),
-  EMAIL_PORT: z.coerce.number(),
-  EMAIL_USER: z.string(),
-  EMAIL_PASSWORD: z.string(),
+  OPENAI_API_KEY: z.string().optional().default('placeholder_openai'),
+  GEMINI_API_KEY: z.string().optional().default('placeholder_gemini'),
+  GROQ_API_KEY: z.string().optional().default('placeholder_groq'),
+  EMAIL_HOST: z.string().optional().default('placeholder_host'),
+  EMAIL_PORT: z.coerce.number().optional().default(1025),
+  EMAIL_USER: z.string().optional().default('placeholder_user'),
+  EMAIL_PASSWORD: z.string().optional().default('placeholder_password'),
   EMAIL_FROM: z.string().email().default('noreply@aisqlgenerator.com'),
 });
 
 let validatedEnv;
 try {
-  validatedEnv = envSchema.parse(process.env);
+  const rawEnv = { ...process.env };
+  if (!rawEnv.JWT_REFRESH_SECRET && rawEnv.JWT_SECRET) {
+    rawEnv.JWT_REFRESH_SECRET = rawEnv.JWT_SECRET;
+  }
+  validatedEnv = envSchema.parse(rawEnv);
 } catch (error) {
   if (error instanceof z.ZodError) {
     console.error('❌ Invalid environment variables:', JSON.stringify(error.format(), null, 2));

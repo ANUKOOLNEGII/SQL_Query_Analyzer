@@ -2,18 +2,40 @@ import { axiosClient } from './axiosClient';
 
 export const authService = {
   async register(name: string, email: string, password: string) {
-    const response = await axiosClient.post('/auth/register', { name, email, password });
+    const response = await axiosClient.post('/auth/register', { fullName: name, email, password });
     return response.data;
   },
 
   async login(email: string, password: string) {
     const response = await axiosClient.post('/auth/login', { email, password });
-    return response.data;
+    const resData = response.data;
+    if (resData.accessToken) {
+      return {
+        ...resData,
+        token: resData.accessToken,
+        user: {
+          ...resData.user,
+          name: resData.user.fullName
+        }
+      };
+    }
+    return resData;
   },
 
   async verifyOtp(email: string, otp: string) {
     const response = await axiosClient.post('/auth/verify-otp', { email, otp });
-    return response.data;
+    const resData = response.data;
+    if (resData.accessToken) {
+      return {
+        ...resData,
+        token: resData.accessToken,
+        user: {
+          ...resData.user,
+          name: resData.user.fullName
+        }
+      };
+    }
+    return resData;
   },
 
   async forgotPassword(email: string) {

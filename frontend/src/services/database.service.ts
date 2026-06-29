@@ -12,17 +12,46 @@ export interface DBConnectionData {
 
 export const databaseService = {
   async getConnections() {
-    const response = await axiosClient.get('/databases/connections');
-    return response.data;
+    const response = await axiosClient.get('/database');
+    return response.data.map((c: any) => ({
+      ...c,
+      name: c.databaseName,
+      type: c.databaseType
+    }));
   },
 
   async createConnection(data: DBConnectionData) {
-    const response = await axiosClient.post('/databases/connections', data);
-    return response.data;
+    const payload = {
+      databaseType: data.type,
+      host: data.host,
+      port: Number(data.port),
+      databaseName: data.databaseName,
+      username: data.username,
+      password: data.password
+    };
+    const response = await axiosClient.post('/database/connect', payload);
+    return {
+      ...response.data,
+      name: response.data.databaseName,
+      type: response.data.databaseType
+    };
   },
 
   async testConnection(data: DBConnectionData) {
-    const response = await axiosClient.post('/databases/test-connection', data);
+    const payload = {
+      databaseType: data.type,
+      host: data.host,
+      port: Number(data.port),
+      databaseName: data.databaseName,
+      username: data.username,
+      password: data.password
+    };
+    const response = await axiosClient.post('/database/test', payload);
+    return response.data;
+  },
+
+  async getSchema(id: string) {
+    const response = await axiosClient.get(`/database/schema/${id}`);
     return response.data;
   }
 };

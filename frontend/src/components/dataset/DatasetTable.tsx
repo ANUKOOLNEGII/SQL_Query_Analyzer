@@ -57,7 +57,7 @@ export const DatasetTable: React.FC<DatasetTableProps> = ({
                     <span className="truncate max-w-[200px]">{d.name}</span>
                   </td>
                   <td className="px-6 py-4.5 whitespace-nowrap text-sm text-text-secondaryLight dark:text-text-secondaryDark font-medium">
-                    {d.rowCount.toLocaleString()}
+                    {(d.rowCount ?? 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4.5 whitespace-nowrap text-sm text-text-secondaryLight dark:text-text-secondaryDark font-medium">
                     {d.columnCount}

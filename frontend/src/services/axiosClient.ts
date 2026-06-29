@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AxiosRequestConfig } from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 export const axiosClient = axios.create({
@@ -27,7 +27,13 @@ axiosClient.interceptors.request.use(
 
 // Response Interceptor: Handle auth errors
 axiosClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Automatically unwrap { success: true, data: ... }
+    if (response.data && response.data.success && response.data.data !== undefined) {
+      response.data = response.data.data;
+    }
+    return response;
+  },
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('auth_token');

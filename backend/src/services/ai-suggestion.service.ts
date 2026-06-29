@@ -1,10 +1,11 @@
 import { openai } from '../config/openai';
 import { gemini } from '../config/gemini';
+import { groq } from '../config/groq';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { DatabaseSchemaSnapshot } from './schema.service';
 
-export type SuggestionSource = 'openai' | 'gemini' | 'fallback';
+export type SuggestionSource = 'groq' | 'openai' | 'gemini' | 'fallback';
 
 export interface SuggestionResult {
   suggestions: string[];
@@ -220,12 +221,42 @@ const generateSuggestionsWithGemini = async (prompt: string): Promise<string[]> 
   return parseSuggestionResponse(responseText.trim());
 };
 
+const generateSuggestionsWithGroq = async (prompt: string): Promise<string[]> => {
+  if (env.GROQ_API_KEY.includes('placeholder')) {
+    throw new Error('Groq API Key is placeholder');
+  }
+
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+  });
+
+  const content = completion.choices[0].message.content;
+  if (!content) {
+    throw new Error('Empty response from Groq');
+  }
+
+  return parseSuggestionResponse(content);
+};
+
 export const generateSuggestions = async (
   naturalLanguageQuery: string,
   schema: DatabaseSchemaSnapshot,
   generatedSQL: string
 ): Promise<SuggestionResult> => {
   const prompt = buildSuggestionPrompt(naturalLanguageQuery, schema, generatedSQL);
+
+  try {
+    const aiSuggestions = deduplicateSuggestions(await generateSuggestionsWithGroq(prompt));
+    if (aiSuggestions.length > 0) {
+      const suggestions = ensureThreeSuggestions(aiSuggestions, schema, naturalLanguageQuery);
+      logger.info('Query suggestions generated', { source: 'groq', count: suggestions.length });
+      return { suggestions, source: 'groq' };
+    }
+  } catch (groqErr: any) {
+    logger.warn(`Groq suggestion generation failed: ${groqErr.message}. Trying OpenAI.`);
+  }
 
   try {
     const aiSuggestions = deduplicateSuggestions(await generateSuggestionsWithOpenAI(prompt));

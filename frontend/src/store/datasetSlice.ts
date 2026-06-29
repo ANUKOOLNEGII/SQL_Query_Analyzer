@@ -45,7 +45,7 @@ const initialState: DatasetState = {
 };
 
 export const datasetSlice = createSlice({
-  name: 'dataset',
+  name: 'datasets',
   initialState,
   reducers: {
     setDatasets: (state, action: PayloadAction<Dataset[]>) => {

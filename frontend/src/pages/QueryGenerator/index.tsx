@@ -9,9 +9,11 @@ import {
   setValidation,
   clearQueryState
 } from '../../store/querySlice';
-import { setSelectedDataset } from '../../store/datasetSlice';
+import { setSelectedDataset, setSchema } from '../../store/datasetSlice';
 import { queryService } from '../../services/query.service';
 import { datasetService } from '../../services/dataset.service';
+import { databaseService } from '../../services/database.service';
+import type { Dataset } from '../../store/datasetSlice';
 import { useToast } from '../../contexts/ToastContext';
 import QueryInput from '../../components/query/QueryInput';
 import SQLViewer from '../../components/query/SQLViewer';
@@ -36,22 +38,50 @@ export const QueryGenerator: React.FC = () => {
   const [inputVal, setInputVal] = useState(naturalQuery);
   const [generating, setGenerating] = useState(false);
   const [loadingDatasets, setLoadingDatasets] = useState(true);
+  const [availableSources, setAvailableSources] = useState<Dataset[]>([]);
 
   useEffect(() => {
-    const loadDatasets = async () => {
+    const loadSources = async () => {
       try {
-        const data = await datasetService.getDatasets();
-        if (data.length > 0 && !selectedDataset) {
-          dispatch(setSelectedDataset(data[0]));
+        const [datasetsData, connectionsData] = await Promise.all([
+          datasetService.getDatasets(),
+          databaseService.getConnections().catch(() => [])
+        ]);
+
+        const mappedConnections = connectionsData.map((conn: any) => ({
+          id: conn.id,
+          name: `db://${conn.name}`,
+          rowCount: 0,
+          columnCount: 0,
+          createdAt: conn.createdAt || new Date().toISOString(),
+          status: 'available' as const,
+          columns: []
+        }));
+
+        const combined = [...datasetsData, ...mappedConnections];
+        setAvailableSources(combined);
+
+        if (combined.length > 0 && !selectedDataset) {
+          dispatch(setSelectedDataset(combined[0]));
+          if (combined[0].name.startsWith('db://')) {
+            try {
+              const schemaData = await databaseService.getSchema(combined[0].id);
+              dispatch(setSchema(schemaData));
+            } catch (err) {
+              console.error('Failed to load initial db schema');
+            }
+          } else {
+            dispatch(setSchema(null));
+          }
         }
       } catch (err) {
-        addToast('Failed to load datasets', 'error');
+        addToast('Failed to load data sources', 'error');
       } finally {
         setLoadingDatasets(false);
       }
     };
 
-    loadDatasets();
+    loadSources();
   }, [dispatch]);
 
   // Synchronize input value with redux state changes (e.g. from suggestions click)
@@ -73,10 +103,11 @@ export const QueryGenerator: React.FC = () => {
     dispatch(setValidation({ isValid: false, errors: [] }));
 
     try {
+      const isDb = selectedDataset.name.startsWith('db://');
       const res = await queryService.generateQuery({
         query: inputVal,
-        datasetId: selectedDataset.id.startsWith('db-') ? undefined : selectedDataset.id,
-        connectionId: selectedDataset.id.startsWith('conn-') ? selectedDataset.id : undefined,
+        datasetId: isDb ? undefined : selectedDataset.id,
+        connectionId: isDb ? selectedDataset.id : undefined,
       });
 
       dispatch(setNaturalQuery(inputVal));
@@ -107,13 +138,24 @@ export const QueryGenerator: React.FC = () => {
     navigate('/query-execution');
   };
 
-  const handleSourceSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleSourceSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
-    const found = datasets.find(d => d.id === val);
+    const found = availableSources.find(d => d.id === val);
     if (found) {
       dispatch(setSelectedDataset(found));
       dispatch(clearQueryState());
       setInputVal('');
+      
+      if (found.name.startsWith('db://')) {
+        try {
+          const schemaData = await databaseService.getSchema(found.id);
+          dispatch(setSchema(schemaData));
+        } catch (err) {
+          addToast('Failed to load database schema', 'error');
+        }
+      } else {
+        dispatch(setSchema(null));
+      }
     }
   };
 
@@ -143,12 +185,12 @@ export const QueryGenerator: React.FC = () => {
             onChange={handleSourceSelect}
             className="bg-transparent border-none text-sm font-bold text-text-primaryLight dark:text-text-primaryDark outline-none focus:ring-0 cursor-pointer pr-8"
           >
-            {datasets.length === 0 ? (
+            {availableSources.length === 0 ? (
               <option value="">No Active Schema</option>
             ) : (
-              datasets.map((d) => (
+              availableSources.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.name.substring(0, 20)}
+                  {d.name.substring(0, 30)}
                 </option>
               ))
             )}
@@ -156,7 +198,7 @@ export const QueryGenerator: React.FC = () => {
         </div>
       </div>
 
-      {datasets.length === 0 ? (
+      {availableSources.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-12 py-20 border border-dashed border-border-light dark:border-border-dark rounded-card bg-surface-light/40 dark:bg-surface-dark/40 text-center">
           <AlertTriangle size={48} className="text-warning mb-6" />
           <h3 className="text-lg font-bold text-text-primaryLight dark:text-text-primaryDark mb-2">No Active Data Schemas</h3>

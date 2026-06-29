@@ -2,6 +2,7 @@ import { DatabaseSchemaSnapshot } from '../schema.service';
 import { buildPrompt } from './prompt-builder.service';
 import { generateWithOpenAI } from './openai.service';
 import { generateWithGemini } from './gemini.service';
+import { generateWithGroq } from './groq.service';
 import { generateSuggestions, SuggestionSource } from '../ai-suggestion.service';
 import { logger } from '../../config/logger';
 
@@ -76,17 +77,24 @@ export const generateSQLQuery = async (
   let sqlResult: Pick<AISQLResponse, 'sql' | 'explanation'>;
 
   try {
-    logger.info('Attempting SQL generation with OpenAI');
-    sqlResult = await generateWithOpenAI(prompt);
-  } catch (openaiErr: any) {
-    logger.warn(`OpenAI failed: ${openaiErr.message}. Trying Gemini fallback.`);
+    logger.info('Attempting SQL generation with Groq');
+    sqlResult = await generateWithGroq(prompt);
+  } catch (groqErr: any) {
+    logger.warn(`Groq failed: ${groqErr.message}. Trying OpenAI.`);
 
     try {
-      logger.info('Attempting SQL generation with Gemini');
-      sqlResult = await generateWithGemini(prompt);
-    } catch (geminiErr: any) {
-      logger.warn(`Gemini failed: ${geminiErr.message}. Falling back to mock generator.`);
-      sqlResult = generateMockSQL(schema, naturalQuery, dbType);
+      logger.info('Attempting SQL generation with OpenAI');
+      sqlResult = await generateWithOpenAI(prompt);
+    } catch (openaiErr: any) {
+      logger.warn(`OpenAI failed: ${openaiErr.message}. Trying Gemini fallback.`);
+
+      try {
+        logger.info('Attempting SQL generation with Gemini');
+        sqlResult = await generateWithGemini(prompt);
+      } catch (geminiErr: any) {
+        logger.warn(`Gemini failed: ${geminiErr.message}. Falling back to mock generator.`);
+        sqlResult = generateMockSQL(schema, naturalQuery, dbType);
+      }
     }
   }
 

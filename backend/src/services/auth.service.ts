@@ -26,5 +26,6 @@ export const generateRefreshToken = (userId: string, email: string): string => {
 };
 
 export const verifyRefreshToken = (token: string): { id: string; email: string } => {
-  return jwt.verify(token, jwtConfig.refreshSecret) as { id: string; email: string };
+  const secret = (jwtConfig.refreshSecret || jwtConfig.secret) as Secret;
+  return jwt.verify(token, secret) as unknown as { id: string; email: string };
 };

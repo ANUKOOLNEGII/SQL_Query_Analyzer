@@ -57,10 +57,10 @@ describe('End-to-End Query, Connection, & Export Integration Tests', () => {
         .send({
           databaseType: 'postgresql',
           host: 'localhost',
-          port: 5432,
+          port: 5433,
           username: 'postgres',
-          password: '0745',
-          databaseName: 'ai_sql_generator',
+          password: 'AnNg@2005',
+          databaseName: 'AI-Powered-SQL-Generator',
         });
 
       expect(res.statusCode).toEqual(200);
@@ -74,10 +74,10 @@ describe('End-to-End Query, Connection, & Export Integration Tests', () => {
         .send({
           databaseType: 'postgresql',
           host: 'localhost',
-          port: 5432,
+          port: 5433,
           username: 'postgres',
-          password: '0745',
-          databaseName: 'ai_sql_generator',
+          password: 'AnNg@2005',
+          databaseName: 'AI-Powered-SQL-Generator',
         });
 
       expect(res.statusCode).toEqual(201);

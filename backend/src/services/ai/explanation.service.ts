@@ -1,5 +1,6 @@
 import { openai } from '../../config/openai';
 import { gemini } from '../../config/gemini';
+import { groq } from '../../config/groq';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 
@@ -9,6 +10,18 @@ export const explainSQL = async (sql: string, dbType: string): Promise<string> =
   ${sql}
   
   Provide only the plain English explanation, no other text.`;
+
+  if (!env.GROQ_API_KEY.includes('placeholder')) {
+    try {
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+      });
+      return (completion.choices[0].message.content || '').trim();
+    } catch (err) {
+      logger.error('Groq explanation failed:', err);
+    }
+  }
 
   if (!env.OPENAI_API_KEY.includes('placeholder')) {
     try {

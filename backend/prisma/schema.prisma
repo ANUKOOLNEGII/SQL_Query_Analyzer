@@ -1,10 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model User {
@@ -13,16 +13,16 @@ model User {
   email               String               @unique
   password            String
   isVerified          Boolean              @default(false)
-  resetToken          String?              @db.Text
-  resetTokenExpiresAt DateTime?           
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
-  otpVerifications    OtpVerification[]
-  datasets            Dataset[]
-  databaseConnections DatabaseConnection[]
-  queryHistory        QueryHistory[]
   auditLogs           AuditLog[]
+  databaseConnections DatabaseConnection[]
+  datasets            Dataset[]
   exportHistory       ExportHistory[]
+  otpVerifications    OtpVerification[]
+  queryHistory        QueryHistory[]
 
   @@map("users")
 }
@@ -47,8 +47,8 @@ model Dataset {
   totalRows    Int
   totalColumns Int
   createdAt    DateTime        @default(now())
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   columns      DatasetColumn[]
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("datasets")
 }
@@ -108,7 +108,7 @@ model AuditLog {
   action    String
   metadata  Json?
   createdAt DateTime @default(now())
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user      User?    @relation(fields: [userId], references: [id])
 
   @@map("audit_logs")
 }
